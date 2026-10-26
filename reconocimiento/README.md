@@ -2,52 +2,58 @@
 
 ## Escaneo Nmap
 
-Comando informado:
+Comando ejecutado en el laboratorio:
 
 ```bash
 nmap -sV -sC --min-rate 5000 10.66.140.66
 ```
 
-### Resumen observado
+### Resultados relevantes
 
-| Puerto | Servicio | Banner |
-|---|---|---|
-| 22/tcp | SSH | OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 |
-| 80/tcp | HTTP | Apache httpd 2.4.41 (Ubuntu) |
+El host respondió y Nmap informó 998 puertos TCP cerrados entre los 1000 puertos TCP habituales examinados.
 
-También se reportó el título `HackIT - Home` y una cookie `PHPSESSID` sin el atributo `HttpOnly`.
+| Puerto | Estado | Servicio | Versión detectada |
+|---|---|---|---|
+| 22/tcp | Abierto | SSH | OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 |
+| 80/tcp | Abierto | HTTP | Apache httpd 2.4.41 (Ubuntu) |
 
-### Interpretación y límites
+Otros datos observados:
 
-- `-sV` intenta identificar versiones de servicios; los banners pueden ser incompletos o modificados.
-- `-sC` ejecuta scripts NSE predeterminados.
-- `--min-rate 5000` solicita una tasa mínima alta de envío de sondas. En laboratorios con latencia o limitación de tasa puede producir resultados menos fiables; conviene repetir el escaneo con una tasa más moderada si hay dudas.
-- La salida compartida muestra solo los 1000 puertos TCP más habituales por defecto, no todos los puertos TCP posibles.
-- La falta de `HttpOnly` puede aumentar el riesgo de lectura de la cookie mediante JavaScript si existe una vulnerabilidad de XSS, pero no demuestra por sí sola que exista XSS ni que la sesión sea explotable.
-- La versión del banner de Apache no demuestra automáticamente que el servidor tenga una vulnerabilidad explotable: hay que comprobar parches del proveedor y configuración.
+- Título de la página: `HackIT - Home`.
+- Cookie de sesión `PHPSESSID` sin el atributo `HttpOnly`.
+- Sistema identificado por Nmap: Linux.
 
-## Enumeración de directorios
+La ausencia de `HttpOnly` es una observación de configuración. Por sí sola no demuestra una vulnerabilidad XSS ni que una sesión pueda secuestrarse. Los banners de versión tampoco bastan para determinar por sí solos el estado de parcheo.
 
-Comando informado:
+## Enumeración de directorios con Gobuster
+
+Comando utilizado:
 
 ```bash
 gobuster dir -u http://10.66.140.66 -w /usr/share/wordlists/dirb/common.txt
 ```
 
-Rutas descritas en las notas:
+Rutas identificadas en las notas del laboratorio:
 
-| Ruta | Observación inicial | Pendiente |
-|---|---|---|
-| `/css` | Recursos de estilo | Confirmar código HTTP y contenido |
-| `/js` | Recursos JavaScript | Confirmar código HTTP y contenido |
-| `/uploads` | Posible directorio de archivos subidos | Confirmar que esta sea la ruta exacta; las notas originales decían `/upload` |
-| `/panel` | Interfaz descrita como formulario de subida | Captura, código HTTP y controles observados |
+| Ruta | Observación |
+|---|---|
+| `/css` | Recursos de estilos de la página |
+| `/js` | Recursos JavaScript |
+| `/upload` | Directorio relacionado con los archivos subidos |
+| `/panel` | Panel con formulario para subir archivos |
 
-No se han recibido aún la salida completa de Gobuster ni los códigos de estado. Por ello, las rutas se mantienen como datos por confirmar, no como vulnerabilidades demostradas.
+La ruta `/panel` permitió localizar el formulario de subida. En las pruebas del laboratorio, la extensión `.php` fue rechazada y el archivo pudo subirse tras cambiar su extensión a `.php5`. La ejecución de la shell inversa debe respaldarse con la captura propia incluida en la sección de evidencias.
 
-## Próximos datos que añadir
+## Límites de los resultados
 
-- Salida íntegra de Nmap y Gobuster.
-- Códigos HTTP de cada ruta.
-- Si se identificó una versión de PHP, fuente fiable de esa identificación.
-- Capturas sanitizadas de las páginas pertinentes.
+- El escaneo mostrado cubre los 1000 puertos TCP habituales por defecto, no todos los puertos TCP posibles.
+- `--min-rate 5000` solicita una tasa de envío alta; si faltaran resultados o hubiera dudas, convendría repetir el escaneo con una tasa más moderada.
+- La salida original completa de Gobuster y sus códigos HTTP no están incluidos aquí, por lo que las rutas se describen según las notas tomadas durante el laboratorio.
+
+## Referencias
+
+- [TryHackMe: RootMe](https://tryhackme.com/room/rrootme)
+- [Nmap](https://nmap.org/)
+- [Gobuster](https://github.com/OJ/gobuster)
+- [PentestMonkey PHP reverse shell](https://github.com/pentestmonkey/php-reverse-shell)
+- [Guía de referencia consultada sobre RootMe](https://medium.com/@shubamagrawal112/tryhackme-rootme-1fca0c4e0669)
