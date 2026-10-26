@@ -4,16 +4,15 @@ Añadir capturas propias y salidas de terminal que respalden el informe.
 
 ## Evidencias recomendadas
 
-- [ ] Salida de Nmap donde aparecen los puertos 22 y 80.
-- [ ] Salida de Gobuster con las rutas encontradas.
-- [ ] Captura del formulario de subida en `/panel`.
-- [ ] Evidencia de la shell inversa, ocultando direcciones o datos que no sea necesario publicar.
-- [ ] Salida de la búsqueda SUID que muestre `/usr/bin/python2.7`.
-- [ ] Salida de `id` que demuestre los privilegios obtenidos, ocultando cualquier información sensible.
+<img width="2560" height="1440" alt="imagen" src="https://github.com/user-attachments/assets/4e126156-65cf-4f17-ad42-12b5662196a1" />
 
-## Antes de publicar
 
-- No incluir las flags completas, contraseñas, tokens, cookies de sesión ni claves privadas.
-- No subir archivos de shell inversa ni otros payloads funcionales.
-- No usar capturas de una guía externa como si fueran pruebas propias.
-- Si todavía no se han guardado capturas propias, indicarlo en la entrega en vez de inventar evidencias.
+<img width="2560" height="1440" alt="imagen" src="https://github.com/user-attachments/assets/817e3f70-7d7a-48dd-b8e2-e9c8da41d6ce" />
+
+<img width="2556" height="1440" alt="imagen" src="https://github.com/user-attachments/assets/5d4766ea-0dab-41ce-9916-7f650f1dac85" />
+
+
+
+
+
+
