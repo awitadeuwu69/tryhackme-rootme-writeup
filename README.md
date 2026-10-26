@@ -1,107 +1,78 @@
 # TryHackMe: RootMe
 
-> **Estado:** informe en progreso. Este documento se basa únicamente en las observaciones compartidas hasta ahora. Los pasos de explotación, las flags y la escalada de privilegios todavía no están documentados ni verificados.
+## Objetivo
 
-## 1. Objetivo y alcance
+Resolver el laboratorio **RootMe** de TryHackMe, identificar las debilidades que permitieron avanzar y proponer medidas para prevenirlas.
 
-Documentar la evaluación práctica de la máquina **RootMe** de TryHackMe, registrando reconocimiento, posibles vulnerabilidades, validaciones, evidencias y recomendaciones de remediación.
+- **Plataforma:** [TryHackMe: RootMe](https://tryhackme.com/room/rrootme)
+- **Alcance:** máquina asignada dentro del entorno autorizado de TryHackMe.
+- **Estado:** desafío completado según las pruebas realizadas. No se incluyen las flags completas.
 
-- Plataforma: [TryHackMe · RootMe](https://tryhackme.com/room/rrootme)
-- Objetivo observado durante el escaneo: `10.66.140.66` (IP de laboratorio, puede cambiar).
-- Alcance: únicamente la máquina asignada dentro del laboratorio autorizado de TryHackMe.
-- Estado de finalización: **pendiente de confirmar**. No se afirma que el CTF esté completado.
+## Herramientas utilizadas
 
-## 2. Entorno y herramientas
+- **Nmap:** reconocimiento de puertos y servicios.
+- **Gobuster:** búsqueda de directorios web.
+- **Navegador:** revisión de la página y del formulario de subida.
+- **Netcat:** recepción de la conexión de shell inversa.
 
-- Nmap para enumeración de puertos y versiones.
-- Gobuster para descubrir rutas web.
-- Navegador web para inspeccionar la aplicación.
-- Sistema operativo del atacante: pendiente de documentar.
-- Fecha y hora del escaneo según la salida proporcionada: 25 de octubre de 2026, 21:15 (zona indicada por Nmap: UTC−04:00).
+## Metodología y resultados
 
-## 3. Reconocimiento
+### 1. Reconocimiento
 
-### 3.1 Escaneo de servicios
-
-Comando ejecutado:
+Se ejecutó:
 
 ```bash
 nmap -sV -sC --min-rate 5000 10.66.140.66
 ```
 
-Resumen de la salida aportada:
+Se encontraron dos puertos abiertos:
 
-| Puerto | Estado | Servicio | Versión detectada |
-|---|---|---|---|
-| 22/tcp | Abierto | SSH | OpenSSH 8.2p1 Ubuntu 4ubuntu0.13 |
-| 80/tcp | Abierto | HTTP | Apache httpd 2.4.41 (Ubuntu) |
+| Puerto | Servicio detectado |
+|---|---|
+| 22/tcp | SSH, OpenSSH 8.2p1 Ubuntu |
+| 80/tcp | HTTP, Apache 2.4.41 (Ubuntu) |
 
-Otros datos observados:
-- Título HTTP: `HackIT - Home`.
-- Cookie `PHPSESSID` sin el atributo `HttpOnly` en la respuesta revisada.
-- Sistema operativo inferido por Nmap: Linux.
-- La identificación de versión por banner no demuestra por sí sola que un servicio sea explotable.
+La página web mostraba el título `HackIT - Home`. En la salida también se observó que la cookie `PHPSESSID` no tenía el atributo `HttpOnly`.
 
-Véase [reconocimiento/README.md](reconocimiento/README.md).
+### 2. Enumeración web y acceso inicial
 
-### 3.2 Enumeración web
+Con Gobuster se localizaron rutas como `/panel` y una posible carpeta de archivos subidos (`/upload` o `/uploads`; la ruta exacta debe confirmarse con la salida original).
 
-Se informó de la ejecución de Gobuster:
+En el panel se encontró un formulario de subida. Durante el laboratorio se modificó la extensión del archivo PHP a `.php5` y se consiguió una conexión de shell inversa. Esto indica que la validación de archivos y la configuración de ejecución del servidor permitían un archivo subido que podía ejecutar código.
 
-```bash
-gobuster dir -u http://10.66.140.66 -w /usr/share/wordlists/dirb/common.txt
-```
+### 3. Escalada de privilegios
 
-Rutas reportadas:
-- `/css`: recursos de estilo.
-- `/js`: recursos JavaScript.
-- `/uploads`: directorio reportado como posible destino de archivos subidos; confirmar la ruta exacta y respuesta HTTP.
-- `/panel`: interfaz reportada para subir archivos.
+En la sesión obtenida se buscó archivos con el permiso SUID. Se encontró `/usr/bin/python2.7`, propiedad de `root` y con el bit SUID activo. La comprobación de Python devolvió UID efectivo `0`, y se continuó con el procedimiento de la guía para obtener acceso privilegiado.
 
-Las rutas se consideran observaciones iniciales, no vulnerabilidades confirmadas. Faltan el resultado completo de Gobuster, códigos HTTP y evidencias visuales.
+Más detalles: [escalada/README.md](escalada/README.md).
 
-## 4. Vulnerabilidades y hallazgos
+## Vulnerabilidades e impacto
 
-| ID | Hallazgo | Estado actual | Prioridad provisional |
-|---|---|---|---|
-| F-01 | Cookie de sesión sin `HttpOnly` | Observado en la salida de Nmap; requiere comprobar si la cookie es sensible y revisar las demás directivas | Baja / por validar |
-| F-02 | Funcionalidad de subida de archivos en `/panel` y posible directorio `/uploads` | Superficie de ataque identificada; aún no se ha documentado una validación de archivo débil | Por determinar |
-| F-03 | CVE-2026-109618 y CVE-2026-109619 (PHP) | Investigación complementaria; no se ha confirmado versión, SAPI ni vulnerabilidad en esta máquina | Crítica si se confirma exposición, no atribuida todavía al objetivo |
+- **Validación insegura de archivos subidos:** permitió obtener ejecución de código a través del servidor web. En un entorno real, podría permitir acceso no autorizado al sistema con los permisos de la cuenta del servidor.
+- **Python con SUID de root:** el intérprete podía ejecutarse con privilegios efectivos de root. Si una cuenta de bajo privilegio puede utilizarlo para iniciar una shell privilegiada, puede comprometerse todo el sistema.
+- **Cookie sin `HttpOnly`:** aumenta el riesgo de exposición de la cookie si también existe una vulnerabilidad que permita ejecutar JavaScript en la página. Por sí sola, esta observación no demuestra que exista XSS.
 
-El análisis separado de las CVE se encuentra en [vulnerabilidades/CVE-2026-109618-109619.md](vulnerabilidades/CVE-2026-109618-109619.md).
+## Remediaciones recomendadas
 
-## 5. Explotación y escalada de privilegios
+- Permitir únicamente tipos de archivo necesarios y comprobar tanto la extensión como el contenido.
+- Guardar archivos subidos fuera del directorio público y deshabilitar la ejecución de scripts en esa ubicación.
+- Quitar el bit SUID de intérpretes y programas que no lo necesiten; revisar periódicamente los archivos SUID.
+- Configurar cookies de sesión con `HttpOnly`, `Secure` cuando se utilice HTTPS y `SameSite` apropiado.
+- Mantener el sistema operativo y los servicios actualizados y aplicar el principio de mínimo privilegio.
 
-**Pendiente de completar con la experiencia real.** Añadir aquí, en orden:
-1. Condición vulnerable y cómo se verificó.
-2. Herramientas y comandos ejecutados.
-3. Evidencia que demuestra el resultado.
-4. Usuario o contexto de ejecución obtenido.
-5. Procedimiento de escalada, si se realizó, y evidencia de los privilegios alcanzados.
+## Evidencias
 
-No se debe presentar un procedimiento encontrado en una guía externa como si se hubiera ejecutado personalmente. No publicar flags completas, contraseñas, tokens, claves privadas ni datos de sesión.
+La carpeta [evidencias/](evidencias/README.md) indica las capturas y salidas que deben adjuntarse. No se publican flags completas, credenciales ni datos de sesión. Las capturas de ejecución deben añadirse desde el propio laboratorio, sin usar imágenes de guías externas como si fueran propias.
 
-## 6. Evidencias
+## Conclusión
 
-Consultar [evidencias/README.md](evidencias/README.md) para la lista de capturas y resultados pendientes. Antes de publicar capturas, ocultar flags, credenciales, cookies de sesión y cualquier dato sensible.
+El reconocimiento permitió identificar los servicios SSH y HTTP. La revisión de la web descubrió un formulario de subida que, debido a una validación insuficiente, permitió obtener una shell. Después, el hallazgo de Python con SUID permitió avanzar hacia privilegios de root. Las principales medidas preventivas son restringir las subidas, impedir la ejecución de archivos cargados y eliminar permisos SUID innecesarios.
 
-## 7. Remediaciones
-
-Las recomendaciones iniciales están en [remediaciones/README.md](remediaciones/README.md). Las medidas definitivas deben corresponder a los hallazgos que se logren confirmar.
-
-## 8. Conclusiones
-
-El reconocimiento inicial detectó SSH en el puerto 22 y Apache HTTP en el puerto 80, además de una aplicación web que utiliza una cookie denominada `PHPSESSID` y una zona de subida de archivos reportada por enumeración. Estos datos ayudan a priorizar la investigación, pero no bastan para afirmar una explotación exitosa.
-
-El informe se actualizará cuando se incorporen los resultados reales de validación, acceso inicial, escalada y finalización del laboratorio.
-
-## 9. Referencias
+## Referencias
 
 - [TryHackMe: RootMe](https://tryhackme.com/room/rrootme)
-- [Nmap Reference Guide](https://nmap.org/book/man.html)
+- [Nmap](https://nmap.org/)
 - [Gobuster](https://github.com/OJ/gobuster)
-- [PHP: archivo de avisos de seguridad de 2026](https://www.php.net/archive/2026.php)
-- [NCSC del Reino Unido: vulnerabilidades críticas de PHP](https://www.ncsc.gov.uk/news/critical-security-issue-affecting-php)
 
 ---
-**Nota ética:** documentación educativa de un entorno autorizado. No ejecutar pruebas contra sistemas ajenos al alcance definido.
+Informe educativo basado en las pruebas realizadas en el laboratorio autorizado.
