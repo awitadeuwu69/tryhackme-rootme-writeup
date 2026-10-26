@@ -36,7 +36,7 @@ La página web mostraba el título `HackIT - Home`. En la salida también se obs
 
 ### 2. Enumeración web y acceso inicial
 
-Con Gobuster se localizaron rutas como `/panel` y una posible carpeta de archivos subidos (`/upload` o `/uploads`; la ruta exacta debe confirmarse con la salida original).
+Con Gobuster y las notas del laboratorio se identificaron las rutas `/css`, `/js`, `/upload` y `/panel`. La ruta `/panel` contenía el formulario de subida y `/upload` correspondía al directorio relacionado con los archivos cargados.
 
 En el panel se encontró un formulario de subida. Durante el laboratorio se modificó la extensión del archivo PHP a `.php5` y se consiguió una conexión de shell inversa. Esto indica que la validación de archivos y la configuración de ejecución del servidor permitían un archivo subido que podía ejecutar código.
 
@@ -44,7 +44,7 @@ En el panel se encontró un formulario de subida. Durante el laboratorio se modi
 
 En la sesión obtenida se buscó archivos con el permiso SUID. Se encontró `/usr/bin/python2.7`, propiedad de `root` y con el bit SUID activo. La comprobación de Python devolvió UID efectivo `0`, y se continuó con el procedimiento de la guía para obtener acceso privilegiado.
 
-Más detalles: [escalada/README.md](escalada/README.md).
+Más detalles: [escalada/README.md](escalada/README.md). El reconocimiento detallado y los resultados de Nmap y Gobuster están en [reconocimiento/README.md](reconocimiento/README.md).
 
 ## Vulnerabilidades e impacto
 
