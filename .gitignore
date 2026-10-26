@@ -1,0 +1,21 @@
+# Secretos y credenciales
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_ed25519
+secrets.*
+credentials.*
+
+# Archivos temporales y logs
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Salidas de herramientas grandes o datos sensibles: revisar antes de añadir
+loot/
+loot-*/
+captures-private/
